@@ -135,16 +135,19 @@
 const VENDOR_PLANS = {{ vendor_plans_json|safe }};
 
 function auditForm() {
+  const savedTools = JSON.parse(localStorage.getItem('oa_tools') || 'null');
   return {
-    tools: $persist([{ vendor_key: '', plan_key: '', monthly_spend: '', seats: 1 }]).as('oa_tools'),
-    teamSize: $persist(5).as('oa_team_size'),
-    useCase: $persist('mixed').as('oa_use_case'),
+    tools: (savedTools && savedTools.length > 0)
+      ? savedTools
+      : [{ vendor_key: '', plan_key: '', monthly_spend: '', seats: 1 }],
+    teamSize: JSON.parse(localStorage.getItem('oa_team_size') || '5'),
+    useCase: localStorage.getItem('oa_use_case') || 'mixed',
     saving: false,
 
     init() {
-      if (!this.tools || this.tools.length === 0) {
-        this.tools = [{ vendor_key: '', plan_key: '', monthly_spend: '', seats: 1 }];
-      }
+      this.$watch('tools', v => localStorage.setItem('oa_tools', JSON.stringify(v)));
+      this.$watch('teamSize', v => localStorage.setItem('oa_team_size', JSON.stringify(v)));
+      this.$watch('useCase', v => localStorage.setItem('oa_use_case', v));
     },
 
     addTool() {

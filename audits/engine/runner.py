@@ -77,13 +77,16 @@ def audit(inp: AuditInput, pricing: dict) -> AuditResult:
     total_savings = round(sum(f.monthly_savings for f in findings), 2)
     total_spend = round(sum(t.monthly_spend for t in inp.tools if t.monthly_spend > 0), 2)
 
-    # Route determines which CTA to show on the result page
+    # Route determines which CTA to show on the result page.
+    # "optimal" = genuinely no savings found (all tools already on best plan).
+    # Even $10/mo savings is real money — show the normal savings flow.
+    has_savings = any(not f.is_optimal for f in findings)
     if total_savings >= HIGH_SAVINGS_THRESHOLD:
         route = "high_savings"
-    elif total_savings < OPTIMAL_THRESHOLD:
-        route = "optimal"
-    else:
+    elif has_savings:
         route = "normal"
+    else:
+        route = "optimal"  # every tool is already on the best available plan
 
     return AuditResult(
         findings=findings,

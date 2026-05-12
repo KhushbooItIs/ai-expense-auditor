@@ -1,9 +1,9 @@
 django==5.1
+python-dotenv==1.0.1
 psycopg2-binary==2.9.10
 gunicorn==23.0.0
 whitenoise==6.9.0
 dj-database-url==2.3.0
 django-ratelimit==4.1.0
-# Day 6
-# openai==1.82.0
-# resend==2.10.0
+openai==1.82.0
+resend==2.10.0

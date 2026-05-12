@@ -72,7 +72,7 @@ def _templated_summary(result: dict) -> str:
     # Find the biggest saving
     top = max(findings, key=lambda f: f["monthly_savings"], default=None)
 
-    if route == "optimal" or monthly < 5:
+    if route == "optimal":
         return (
             f"Your team is spending ${total_spend:.0f}/mo across {n_tools} AI tool(s) "
             f"and you're already making smart choices. We didn't find meaningful savings — "

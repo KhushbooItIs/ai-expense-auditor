@@ -16,7 +16,11 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: overpaidai.onrender.com
+        value: cruxified.com,www.cruxified.com
+      - key: RESEND_FROM_EMAIL
+        value: overpaid@cruxified.com
+      - key: SITE_URL
+        value: https://cruxified.com
       - key: OPENAI_API_KEY
         sync: false   # set manually in Render dashboard
       - key: RESEND_API_KEY

@@ -28,6 +28,12 @@ def _cost_for_seats(plan: dict, seats: int) -> float:
     return 0.0
 
 
+def _seats_fit(plan: dict, seats: int) -> bool:
+    """Return False if this plan cannot accommodate the given seat count."""
+    max_s = plan.get("max_seats")
+    return max_s is None or seats <= max_s
+
+
 def keep_current(line: ToolLine, inp: AuditInput, pricing: dict) -> list[Candidate]:
     """Baseline: stay on current plan. Always emitted."""
     plan = _plan(pricing, line.vendor_key, line.plan_key)
@@ -73,6 +79,9 @@ def downgrade_within_vendor(line: ToolLine, inp: AuditInput, pricing: dict) -> l
     for (vk, pk), plan in pricing["plans"].items():
         if vk != line.vendor_key or pk == line.plan_key:
             continue
+
+        if not _seats_fit(plan, line.seats):
+            continue  # plan cannot accommodate this seat count
 
         cost = _cost_for_seats(plan, line.seats)
         if cost >= current_cost:
@@ -191,6 +200,9 @@ def switch_to_alternative(line: ToolLine, inp: AuditInput, pricing: dict) -> lis
             continue  # same vendor handled by downgrade generator
         if vk in _API_VENDOR_KEYS:
             continue
+
+        if not _seats_fit(plan, line.seats):
+            continue  # plan cannot accommodate this seat count
 
         score = _fit_score(pricing, vk, pk, inp.use_case)
         if score == 0:
