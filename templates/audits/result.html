@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load floatformat %}
+
+{% block title %}
+  {% if result.route == "high_savings" %}
+    OverpaidAI — ${{ result.monthly_savings|floatformat:0 }}/mo in potential savings
+  {% else %}
+    OverpaidAI — Your AI Audit Results
+  {% endif %}
+{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="I found ${{ result.monthly_savings|floatformat:0 }}/mo in wasted AI spend — OverpaidAI">
+<meta property="og:description" content="Free AI spend audit. {{ result.tool_count }} tool(s) audited. ${{ result.annual_savings|floatformat:0 }} potential annual savings. Run yours in 60 seconds.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="I found ${{ result.monthly_savings|floatformat:0 }}/mo in wasted AI spend">
+<meta name="twitter:description" content="Free AI spend audit — OverpaidAI. Run yours in 60 seconds, no login.">
+{% endblock %}
+
+{% block content %}
+<div x-data="resultPage()" x-cloak>
+
+  <!-- Savings hero -->
+  <div class="text-center mb-10">
+    {% if result.route == "optimal" %}
+      <p class="text-gray-500 text-sm uppercase tracking-widest mb-2">Audit result</p>
+      <h1 class="text-5xl font-extrabold mb-3 text-green-400">You're spending well ✓</h1>
+      <p class="text-gray-400 text-lg">No meaningful savings found — your plans match your team.</p>
+    {% else %}
+      <p class="text-gray-500 text-sm uppercase tracking-widest mb-2">Potential monthly savings</p>
+      <h1 class="text-7xl font-extrabold mb-2 gradient-text">${{ result.monthly_savings|floatformat:0 }}</h1>
+      <p class="text-gray-400 text-xl">${{ result.annual_savings|floatformat:0 }} per year</p>
+      <p class="text-gray-600 text-sm mt-2">across {{ result.tool_count }} tool(s) · ${{ result.total_current_spend|floatformat:0 }}/mo current spend</p>
+    {% endif %}
+  </div>
+
+  <!-- Credex CTA (high savings only) -->
+  {% if result.route == "high_savings" and result.credex_eligible %}
+  <div class="bg-gradient-to-r from-orange-950 to-red-950 border border-orange-800 rounded-xl p-6 mb-8">
+    <div class="flex items-start gap-4">
+      <span class="text-2xl">🔥</span>
+      <div>
+        <h3 class="font-bold text-orange-300 text-lg mb-1">Credex can save you even more</h3>
+        <p class="text-orange-200 text-sm mb-3">
+          You're on plans Credex sources at a discount. Companies that switch to Credex credits
+          typically save an additional 20–40% on top of plan right-sizing.
+        </p>
+        <a href="https://credex.ai?ref=overpaidai&savings={{ result.monthly_savings|floatformat:0 }}"
+           target="_blank"
+           class="inline-block bg-orange-500 hover:bg-orange-400 text-white font-semibold px-5 py-2 rounded-lg text-sm transition-colors">
+          Book a Credex consult →
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- AI summary -->
+  {% if audit.summary_text %}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
+    <p class="text-xs text-gray-500 uppercase tracking-widest mb-2">AI analysis</p>
+    <p class="text-gray-300 leading-relaxed">{{ audit.summary_text }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Per-tool findings -->
+  <div class="mb-8">
+    <h2 class="text-sm text-gray-500 uppercase tracking-widest mb-4">Tool breakdown</h2>
+    <div class="space-y-3">
+      {% for f in result.findings %}
+      <div class="bg-gray-900 border {% if f.is_optimal %}border-gray-800{% else %}border-orange-900{% endif %} rounded-xl p-5">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-semibold text-white">{{ f.vendor_name }}</span>
+              <span class="text-gray-500 text-sm">{{ f.current_plan }}</span>
+              {% if f.current_seats > 1 %}
+              <span class="text-gray-600 text-xs">× {{ f.current_seats }} seats</span>
+              {% endif %}
+            </div>
+            {% if f.is_optimal %}
+              <p class="text-green-400 text-sm flex items-center gap-1">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Already optimal — {{ f.reasoning }}
+              </p>
+            {% else %}
+              <p class="text-orange-300 text-sm font-medium mb-1">→ {{ f.recommended_action }}</p>
+              <p class="text-gray-400 text-sm">{{ f.reasoning }}</p>
+            {% endif %}
+          </div>
+
+          <div class="text-right shrink-0">
+            <div class="text-gray-500 text-xs mb-1">${{ f.current_spend|floatformat:0 }}/mo now</div>
+            {% if not f.is_optimal %}
+            <div class="text-green-400 font-bold text-lg">${{ f.monthly_savings|floatformat:0 }} saved</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Share + email gate -->
+  {% if not is_share %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+
+    <!-- Share button -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <h3 class="font-semibold mb-2">Share your audit</h3>
+      <p class="text-gray-400 text-sm mb-3">Public link — company name and email never shown.</p>
+      <button @click="copyShare()" class="w-full bg-gray-800 hover:bg-gray-700 rounded-lg py-2 text-sm transition-colors">
+        <span x-show="!copied">Copy share link</span>
+        <span x-show="copied" class="text-green-400">Copied ✓</span>
+      </button>
+    </div>
+
+    <!-- Email gate -->
+    {% if result.route == "optimal" %}
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <h3 class="font-semibold mb-2">Stay informed</h3>
+      <p class="text-gray-400 text-sm mb-3">Get notified when new savings apply to your stack.</p>
+      <form @submit.prevent="submitEmail()">
+        <input type="email" x-model="email" placeholder="you@company.com" required
+               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-orange-500">
+        <button type="submit" class="w-full bg-orange-500 hover:bg-orange-400 text-white rounded-lg py-2 text-sm font-medium transition-colors">
+          Notify me
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <div class="bg-gray-900 border border-orange-900 rounded-xl p-5">
+      <h3 class="font-semibold mb-2">Get the full report</h3>
+      <p class="text-gray-400 text-sm mb-3">Receive a PDF summary + Credex savings estimate.</p>
+      <form @submit.prevent="submitEmail()">
+        <input type="email" x-model="email" placeholder="you@company.com" required
+               class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-orange-500">
+        <button type="submit"
+                :disabled="emailSent"
+                class="w-full bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-white rounded-lg py-2 text-sm font-medium transition-colors">
+          <span x-show="!emailSent">Email me the report →</span>
+          <span x-show="emailSent" class="text-white">Sent ✓ Check your inbox</span>
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+  <!-- Run another audit -->
+  <div class="text-center">
+    <a href="/" class="text-gray-500 hover:text-gray-300 text-sm underline">← Run another audit</a>
+  </div>
+
+</div>
+
+<script>
+function resultPage() {
+  return {
+    email: '',
+    emailSent: false,
+    copied: false,
+
+    async submitEmail() {
+      if (!this.email) return;
+      const res = await fetch('/leads/capture/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        body: JSON.stringify({
+          slug: '{{ audit.slug }}',
+          email: this.email,
+        }),
+      });
+      if (res.ok) this.emailSent = true;
+    },
+
+    async copyShare() {
+      const url = `${location.origin}/a/{{ audit.slug }}/`;
+      await navigator.clipboard.writeText(url);
+      this.copied = true;
+      setTimeout(() => this.copied = false, 2000);
+    },
+  };
+}
+
+function getCsrfToken() {
+  return document.cookie.split('; ')
+    .find(r => r.startsWith('csrftoken='))
+    ?.split('=')[1] || '';
+}
+</script>
+{% endblock %}

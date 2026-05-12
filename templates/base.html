@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}OverpaidAI — Free AI Spend Audit{% endblock %}</title>
+
+  {% block og_tags %}
+  <meta property="og:title" content="OverpaidAI — Are you overpaying for AI tools?">
+  <meta property="og:description" content="Free AI spend audit. Find out where you're overspending in 60 seconds. No login required.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="OverpaidAI — Free AI Spend Audit">
+  <meta name="twitter:description" content="Find out if your team is overpaying for AI tools. Free, instant, no login.">
+  {% endblock %}
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .gradient-text {
+      background: linear-gradient(135deg, #ef4444, #f97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+  <nav class="border-b border-gray-800 px-6 py-4">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <a href="/" class="text-xl font-bold tracking-tight">
+        <span class="gradient-text">Overpaid</span><span class="text-white">AI</span>
+      </a>
+      <span class="text-gray-500 text-sm">Free AI spend audit</span>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-6 py-12">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="border-t border-gray-800 mt-24 px-6 py-8 text-center text-gray-600 text-sm">
+    Built by <a href="https://credex.ai" class="underline hover:text-gray-400">Credex</a> ·
+    Free forever · No login required
+  </footer>
+</body>
+</html>
