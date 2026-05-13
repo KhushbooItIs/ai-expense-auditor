@@ -1,3 +1,1 @@
-from django.test import TestCase
-
-# Create your tests here.
+# Engine tests live in audits/tests/test_engine.py

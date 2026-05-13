@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+ignore = ["F403", "F405"]   # Django settings use `from .base import *` by design
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests.py" = ["F401"]     # Django-generated stub files
+"*/tests/test_*.py" = ["F401"]
+"pricing/views.py" = ["F401"]

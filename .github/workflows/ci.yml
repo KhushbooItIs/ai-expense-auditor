@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      DJANGO_SETTINGS_MODULE: overpaidai.settings.dev
+      SECRET_KEY: ci-test-secret-key-not-for-production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint with ruff
+        run: ruff check .
+
+      - name: Run migrations
+        run: python manage.py migrate --run-syncdb
+
+      - name: Seed pricing data
+        run: python manage.py seed_pricing
+
+      - name: Run tests
+        run: pytest audits/tests/ -v
