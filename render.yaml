@@ -16,13 +16,13 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: overpaidai.onrender.com
+        value: ai-expense-auditor-kos7.onrender.com
       - key: CSRF_TRUSTED_ORIGINS
-        value: https://overpaidai.onrender.com
+        value: https://ai-expense-auditor-kos7.onrender.com
       - key: RESEND_FROM_EMAIL
         value: onboarding@resend.dev
       - key: SITE_URL
-        value: https://overpaidai.onrender.com
+        value: https://ai-expense-auditor-kos7.onrender.com
       - key: OPENAI_API_KEY
         sync: false   # set manually in Render dashboard
       - key: RESEND_API_KEY
