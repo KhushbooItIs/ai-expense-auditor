@@ -4,7 +4,7 @@ services:
     env: python
     region: oregon
     plan: free
-    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_pricing"
     startCommand: "gunicorn overpaidai.wsgi --workers 2 --bind 0.0.0.0:$PORT --log-file -"
     envVars:
       - key: DJANGO_SETTINGS_MODULE
@@ -16,7 +16,9 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: cruxified.com,www.cruxified.com
+        value: cruxified.com,www.cruxified.com,overpaidai.onrender.com
+      - key: CSRF_TRUSTED_ORIGINS
+        value: https://cruxified.com,https://www.cruxified.com,https://overpaidai.onrender.com
       - key: RESEND_FROM_EMAIL
         value: overpaid@cruxified.com
       - key: SITE_URL

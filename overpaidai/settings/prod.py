@@ -5,6 +5,11 @@ DEBUG = False
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")
 
+CSRF_TRUSTED_ORIGINS = os.environ.get(
+    "CSRF_TRUSTED_ORIGINS",
+    "https://cruxified.com,https://www.cruxified.com",
+).split(",")
+
 # Render injects DATABASE_URL automatically when a Postgres DB is attached
 DATABASES = {
     "default": dj_database_url.config(
