@@ -28,8 +28,13 @@ media/
 .DS_Store
 Thumbs.db
 
-# Tailwind standalone CLI binary (not committed — download separately)
-tailwindcss-*
+# Tailwind standalone CLI binary (replaced by npm — not committed)
+tailwindcss-macos-*
+tailwindcss-linux-*
+tailwindcss-windows-*
+
+# Node
+node_modules/
 
 # Test coverage
 .coverage

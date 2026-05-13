@@ -3,14 +3,14 @@ Seed VendorPlan and ToolFitScore rows.
 Run once after first deploy: python manage.py seed_pricing
 Safe to re-run — uses update_or_create so it won't duplicate rows.
 
-Pricing verified: 2026-05-10
+Pricing verified: 2026-05-13
 Sources documented in PRICING_DATA.md
 """
 import datetime
 from django.core.management.base import BaseCommand
 from pricing.models import VendorPlan, ToolFitScore
 
-TODAY = datetime.date(2026, 5, 10)
+TODAY = datetime.date(2026, 5, 13)
 
 PLANS = [
     # ── Cursor ─────────────────────────────────────────────────────────────
@@ -24,6 +24,10 @@ PLANS = [
          source_url="https://cursor.com/pricing", last_verified=TODAY),
     dict(vendor_key="cursor", vendor_name="Cursor", plan_key="business", plan_name="Business",
          price_per_seat=40, min_seats=1, features=["sso", "admin", "privacy"],
+         credex_eligible=True,
+         source_url="https://cursor.com/pricing", last_verified=TODAY),
+    dict(vendor_key="cursor", vendor_name="Cursor", plan_key="enterprise", plan_name="Enterprise",
+         price_per_seat=50, min_seats=1, features=["sso", "admin", "privacy", "audit-logs", "custom-models", "dedicated-support"],
          credex_eligible=True,
          source_url="https://cursor.com/pricing", last_verified=TODAY),
 
@@ -53,14 +57,27 @@ PLANS = [
          price_monthly=20, min_seats=1, max_seats=1, features=["projects", "priority-access"],
          credex_eligible=False,
          source_url="https://claude.ai/upgrade", last_verified=TODAY),
-    dict(vendor_key="claude", vendor_name="Claude", plan_key="max", plan_name="Max",
+    dict(vendor_key="claude", vendor_name="Claude", plan_key="max", plan_name="Max (5x)",
          price_monthly=100, min_seats=1, max_seats=1, features=["5x-usage", "priority-access"],
+         credex_eligible=False,
+         source_url="https://claude.ai/upgrade", last_verified=TODAY),
+    dict(vendor_key="claude", vendor_name="Claude", plan_key="max_20x", plan_name="Max (20x)",
+         price_monthly=200, min_seats=1, max_seats=1, features=["20x-usage", "priority-access"],
          credex_eligible=False,
          source_url="https://claude.ai/upgrade", last_verified=TODAY),
     dict(vendor_key="claude", vendor_name="Claude", plan_key="team", plan_name="Team",
          price_per_seat=30, min_seats=5, features=["admin", "projects", "priority-access"],
          credex_eligible=True,
          source_url="https://claude.ai/upgrade", last_verified=TODAY),
+    dict(vendor_key="claude", vendor_name="Claude", plan_key="enterprise", plan_name="Enterprise",
+         price_per_seat=60, min_seats=1, features=["sso", "admin", "audit-logs", "expanded-context", "compliance", "priority-support"],
+         credex_eligible=True,
+         source_url="https://www.anthropic.com/enterprise", last_verified=TODAY),
+    dict(vendor_key="claude", vendor_name="Claude", plan_key="api", plan_name="API (pay-as-you-go)",
+         price_monthly=0, min_seats=1,
+         features=["api-access"],
+         credex_eligible=False,
+         source_url="https://www.anthropic.com/pricing", last_verified=TODAY),
 
     # ── ChatGPT ────────────────────────────────────────────────────────────
     dict(vendor_key="chatgpt", vendor_name="ChatGPT", plan_key="free", plan_name="Free",
@@ -75,6 +92,15 @@ PLANS = [
          price_per_seat=30, min_seats=2, features=["admin", "workspace", "gpt4o"],
          credex_eligible=True,
          source_url="https://openai.com/chatgpt/pricing", last_verified=TODAY),
+    dict(vendor_key="chatgpt", vendor_name="ChatGPT", plan_key="enterprise", plan_name="Enterprise",
+         price_per_seat=75, min_seats=1, features=["admin", "sso", "audit-logs", "unlimited-gpt4o", "no-training", "compliance"],
+         credex_eligible=True,
+         source_url="https://openai.com/chatgpt/pricing", last_verified=TODAY),
+    dict(vendor_key="chatgpt", vendor_name="ChatGPT", plan_key="api", plan_name="API (pay-as-you-go)",
+         price_monthly=0, min_seats=1,
+         features=["api-access"],
+         credex_eligible=False,
+         source_url="https://openai.com/api/pricing", last_verified=TODAY),
 
     # ── Anthropic API (usage-based — user reports their own monthly spend) ──
     dict(vendor_key="anthropic_api", vendor_name="Anthropic API", plan_key="api",
@@ -106,6 +132,11 @@ PLANS = [
          price_per_seat=30, min_seats=1, features=["workspace", "gemini-ultra"],
          credex_eligible=False,
          source_url="https://workspace.google.com/products/gemini", last_verified=TODAY),
+    dict(vendor_key="gemini", vendor_name="Gemini", plan_key="api", plan_name="API (pay-as-you-go)",
+         price_monthly=0, min_seats=1,
+         features=["api-access"],
+         credex_eligible=False,
+         source_url="https://ai.google.dev/pricing", last_verified=TODAY),
 
     # ── Windsurf ───────────────────────────────────────────────────────────
     dict(vendor_key="windsurf", vendor_name="Windsurf", plan_key="free", plan_name="Free",
@@ -126,58 +157,81 @@ PLANS = [
 # Only defined where meaningful — missing combos default to 0 (excluded from alternatives)
 FIT_SCORES = [
     # coding
-    ("cursor", "pro",       "coding", 5, "Purpose-built IDE with multi-file context, edit mode, and .cursorrules"),
-    ("cursor", "business",  "coding", 5, "Same as Pro with team admin features; identical coding capability"),
-    ("copilot", "individual","coding", 4, "Strong inline completions; IDE-native but less multi-file context than Cursor"),
+    ("cursor", "pro",         "coding", 5, "Purpose-built IDE with multi-file context, edit mode, and .cursorrules"),
+    ("cursor", "business",    "coding", 5, "Same as Pro with team admin features; identical coding capability"),
+    ("cursor", "enterprise",  "coding", 5, "Same IDE capability as Business with enterprise controls and custom model support"),
+    ("copilot", "individual", "coding", 4, "Strong inline completions; IDE-native but less multi-file context than Cursor"),
     ("copilot", "business", "coding", 4, "Same coding capability as Individual, adds org-level policy controls"),
     ("copilot", "enterprise","coding", 4, "Same coding capability, adds knowledge bases and PR summaries"),
     ("windsurf", "pro",     "coding", 4, "Strong alternative to Copilot; fast completions, improving rapidly"),
     ("windsurf", "teams",   "coding", 4, "Same coding capability as Pro with team management"),
-    ("claude", "pro",       "coding", 3, "Excellent at code reasoning in chat; no IDE integration"),
-    ("claude", "max",       "coding", 3, "Higher usage limits of Pro; same IDE-less experience"),
-    ("claude", "team",      "coding", 3, "Team plan of Pro capability; no IDE integration"),
-    ("chatgpt", "plus",     "coding", 3, "GPT-4o capable at coding; chat only, no IDE integration"),
-    ("chatgpt", "team",     "coding", 3, "Same as Plus with team workspace; no IDE integration"),
+    ("claude", "pro",         "coding", 3, "Excellent at code reasoning in chat; no IDE integration"),
+    ("claude", "max",         "coding", 3, "Higher usage limits of Pro; same IDE-less experience"),
+    ("claude", "max_20x",     "coding", 3, "20x usage limits for sustained coding sessions; no IDE integration"),
+    ("claude", "team",        "coding", 3, "Team plan of Pro capability; no IDE integration"),
+    ("claude", "enterprise",  "coding", 3, "Claude quality with enterprise controls; no IDE integration"),
+    ("claude", "api",         "coding", 2, "Anthropic API for custom tool integrations; requires development effort to use directly"),
+    ("chatgpt", "plus",       "coding", 3, "GPT-4o capable at coding; chat only, no IDE integration"),
+    ("chatgpt", "team",       "coding", 3, "Same as Plus with team workspace; no IDE integration"),
+    ("chatgpt", "enterprise", "coding", 3, "GPT-4o with enterprise controls; chat only, no IDE integration"),
+    ("chatgpt", "api",        "coding", 2, "OpenAI API for custom integrations; requires development effort to use directly"),
 
     # writing
-    ("claude", "pro",       "writing", 5, "Best-in-class long-form writing; nuanced tone, avoids generic phrasing"),
-    ("claude", "max",       "writing", 5, "Claude Pro with 5x usage — same quality, higher limits"),
-    ("claude", "team",      "writing", 5, "Claude Pro quality with team workspace and shared projects"),
-    ("chatgpt", "plus",     "writing", 4, "GPT-4o is excellent at writing; slightly more verbose than Claude on average"),
-    ("chatgpt", "team",     "writing", 4, "ChatGPT Plus quality with team workspace"),
-    ("gemini", "advanced",  "writing", 4, "Gemini Ultra strong at writing; deeply integrated with Google Docs"),
-    ("gemini", "business",  "writing", 4, "Gemini Advanced quality with Google Workspace integration"),
-    ("cursor", "pro",       "writing", 1, "Code editor — very poor writing UX"),
-    ("cursor", "business",  "writing", 1, "Code editor — very poor writing UX"),
-    ("windsurf", "pro",     "writing", 1, "Code editor — very poor writing UX"),
+    ("claude", "pro",         "writing", 5, "Best-in-class long-form writing; nuanced tone, avoids generic phrasing"),
+    ("claude", "max",         "writing", 5, "Claude Pro with 5x usage — same quality, higher limits"),
+    ("claude", "max_20x",     "writing", 5, "Claude Max with 20x usage — ideal for high-volume writing workloads"),
+    ("claude", "team",        "writing", 5, "Claude Pro quality with team workspace and shared projects"),
+    ("claude", "enterprise",  "writing", 5, "Claude writing quality with enterprise security — great for compliance-sensitive content teams"),
+    ("chatgpt", "plus",       "writing", 4, "GPT-4o is excellent at writing; slightly more verbose than Claude on average"),
+    ("chatgpt", "team",       "writing", 4, "ChatGPT Plus quality with team workspace"),
+    ("chatgpt", "enterprise", "writing", 4, "GPT-4o writing quality; enterprise guarantees no model training on content"),
+    ("gemini", "advanced",    "writing", 4, "Gemini Ultra strong at writing; deeply integrated with Google Docs"),
+    ("gemini", "business",    "writing", 4, "Gemini Advanced quality with Google Workspace integration"),
+    ("cursor", "pro",         "writing", 1, "Code editor — very poor writing UX"),
+    ("cursor", "business",    "writing", 1, "Code editor — very poor writing UX"),
+    ("cursor", "enterprise",  "writing", 1, "Code editor — very poor writing UX"),
+    ("windsurf", "pro",       "writing", 1, "Code editor — very poor writing UX"),
 
     # data / analysis
-    ("chatgpt", "plus",     "data", 5, "Advanced Data Analysis (Code Interpreter) is best-in-class for data work"),
-    ("chatgpt", "team",     "data", 5, "Same Advanced Data Analysis with team workspace"),
-    ("claude", "pro",       "data", 4, "Strong at data reasoning and code generation; no native chart output"),
-    ("claude", "max",       "data", 4, "Higher usage limits for sustained data analysis sessions"),
-    ("claude", "team",      "data", 4, "Claude Pro capability with team collaboration"),
-    ("gemini", "advanced",  "data", 4, "Good at data analysis; native Google Sheets integration"),
-    ("copilot", "individual","data", 3, "Useful for data science code (Python, R); limited analysis beyond code"),
-    ("copilot", "business", "data", 3, "Same as Individual for data work"),
+    ("chatgpt", "plus",       "data", 5, "Advanced Data Analysis (Code Interpreter) is best-in-class for data work"),
+    ("chatgpt", "team",       "data", 5, "Same Advanced Data Analysis with team workspace"),
+    ("chatgpt", "enterprise", "data", 5, "Advanced Data Analysis with enterprise security — ideal for sensitive data teams"),
+    ("claude", "pro",         "data", 4, "Strong at data reasoning and code generation; no native chart output"),
+    ("claude", "max",         "data", 4, "Higher usage limits for sustained data analysis sessions"),
+    ("claude", "max_20x",     "data", 4, "20x usage limits allow long uninterrupted data analysis sessions"),
+    ("claude", "team",        "data", 4, "Claude Pro capability with team collaboration"),
+    ("claude", "enterprise",  "data", 4, "Claude data reasoning with enterprise security controls"),
+    ("gemini", "advanced",    "data", 4, "Good at data analysis; native Google Sheets integration"),
+    ("gemini", "business",    "data", 4, "Gemini Advanced quality with Google Workspace / Sheets integration"),
+    ("copilot", "individual", "data", 3, "Useful for data science code (Python, R); limited analysis beyond code"),
+    ("copilot", "business",   "data", 3, "Same as Individual for data work"),
 
     # research
-    ("claude", "pro",       "research", 5, "Excellent synthesis of long documents; 200K context window"),
-    ("claude", "max",       "research", 5, "Same as Pro with higher usage — critical for sustained research sessions"),
-    ("claude", "team",      "research", 5, "Claude Pro quality with shared research projects"),
-    ("chatgpt", "plus",     "research", 4, "Good at synthesis; browsing feature adds real-time research capability"),
-    ("chatgpt", "team",     "research", 4, "ChatGPT Plus quality with team workspace"),
-    ("gemini", "advanced",  "research", 4, "Good at research; integrates with Google Search natively"),
-    ("copilot", "enterprise","research", 3, "Knowledge bases useful for internal docs; limited general research"),
+    ("claude", "pro",         "research", 5, "Excellent synthesis of long documents; 200K context window"),
+    ("claude", "max",         "research", 5, "Same as Pro with higher usage — critical for sustained research sessions"),
+    ("claude", "max_20x",     "research", 5, "200K context + 20x usage — optimal for intensive research teams"),
+    ("claude", "team",        "research", 5, "Claude Pro quality with shared research projects"),
+    ("claude", "enterprise",  "research", 5, "200K context with enterprise security; ideal for research on sensitive material"),
+    ("chatgpt", "plus",       "research", 4, "Good at synthesis; browsing feature adds real-time research capability"),
+    ("chatgpt", "team",       "research", 4, "ChatGPT Plus quality with team workspace"),
+    ("chatgpt", "enterprise", "research", 4, "GPT-4o browsing + enterprise security for research on proprietary data"),
+    ("gemini", "advanced",    "research", 4, "Good at research; integrates with Google Search natively"),
+    ("gemini", "business",    "research", 4, "Gemini Advanced quality with Google Workspace for enterprise research"),
+    ("copilot", "enterprise", "research", 3, "Knowledge bases useful for internal docs; limited general research"),
 
     # mixed
-    ("claude", "pro",       "mixed", 5, "Best all-rounder: coding, writing, analysis, research"),
-    ("claude", "team",      "mixed", 5, "Claude Pro quality with team features"),
-    ("chatgpt", "plus",     "mixed", 4, "Strong across all use cases; slightly weaker writing vs Claude"),
-    ("chatgpt", "team",     "mixed", 4, "ChatGPT Plus quality with team workspace"),
-    ("cursor", "pro",       "mixed", 3, "Excellent for coding component; weak for writing/research"),
-    ("copilot", "business", "mixed", 3, "Good for coding; limited for writing/research"),
-    ("gemini", "advanced",  "mixed", 3, "Decent all-rounder; strong with Google Workspace integration"),
+    ("claude", "pro",         "mixed", 5, "Best all-rounder: coding, writing, analysis, research"),
+    ("claude", "max_20x",     "mixed", 5, "Claude Max 20x — removes usage limits for teams that hit them regularly"),
+    ("claude", "team",        "mixed", 5, "Claude Pro quality with team features"),
+    ("claude", "enterprise",  "mixed", 5, "Full Claude capability with enterprise security, SSO, and audit logs"),
+    ("chatgpt", "plus",       "mixed", 4, "Strong across all use cases; slightly weaker writing vs Claude"),
+    ("chatgpt", "team",       "mixed", 4, "ChatGPT Plus quality with team workspace"),
+    ("chatgpt", "enterprise", "mixed", 4, "Strong all-rounder with enterprise security and unlimited GPT-4o"),
+    ("cursor", "pro",         "mixed", 3, "Excellent for coding component; weak for writing/research"),
+    ("cursor", "enterprise",  "mixed", 3, "Same coding strength as Business with enterprise controls; weak for writing/research"),
+    ("copilot", "business",   "mixed", 3, "Good for coding; limited for writing/research"),
+    ("gemini", "advanced",    "mixed", 3, "Decent all-rounder; strong with Google Workspace integration"),
+    ("gemini", "business",    "mixed", 3, "Gemini Advanced quality with Google Workspace for mixed-use teams"),
 ]
 
 

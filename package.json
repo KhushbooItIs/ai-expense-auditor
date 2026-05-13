@@ -1,0 +1,12 @@
+{
+  "name": "overpaidai",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss --input static/css/input.css --output static/css/main.css --minify",
+    "watch:css": "tailwindcss --input static/css/input.css --output static/css/main.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.0",
+    "tailwindcss": "4.3.0"
+  }
+}
