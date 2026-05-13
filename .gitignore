@@ -28,6 +28,9 @@ media/
 .DS_Store
 Thumbs.db
 
+# Tailwind standalone CLI binary (not committed — download separately)
+tailwindcss-*
+
 # Test coverage
 .coverage
 htmlcov/

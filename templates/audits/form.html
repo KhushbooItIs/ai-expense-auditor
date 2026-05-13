@@ -16,20 +16,23 @@
   </div>
 
   <!-- Form -->
-  <form method="POST" action="{% url 'run_audit' %}" @submit="saving = true">
+  <form method="POST" action="{% url 'run_audit' %}" @submit="saving = true" aria-label="AI spend audit form">
     {% csrf_token %}
     <!-- Honeypot — hidden from humans, filled by bots -->
-    <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off">
+    <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
 
     <!-- Tool rows -->
-    <div class="space-y-3 mb-6">
+    <fieldset class="space-y-3 mb-6 border-0 p-0 m-0">
+      <legend class="sr-only">Your AI tools</legend>
       <template x-for="(tool, index) in tools" :key="index">
-        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-wrap gap-4 items-end">
+        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-wrap gap-4 items-end"
+             role="group" :aria-label="`Tool ${index + 1}`">
 
           <!-- Vendor -->
           <div class="flex-1 min-w-[160px]">
-            <label class="text-xs text-gray-500 mb-1 block">Tool</label>
-            <select :name="`tools[${index}][vendor_key]`"
+            <label :for="`vendor-${index}`" class="text-xs text-gray-500 mb-1 block">Tool</label>
+            <select :id="`vendor-${index}`"
+                    :name="`tools[${index}][vendor_key]`"
                     x-model="tool.vendor_key"
                     @change="tool.plan_key = ''"
                     class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500">
@@ -42,8 +45,9 @@
 
           <!-- Plan -->
           <div class="flex-1 min-w-[140px]">
-            <label class="text-xs text-gray-500 mb-1 block">Plan</label>
-            <select :name="`tools[${index}][plan_key]`"
+            <label :for="`plan-${index}`" class="text-xs text-gray-500 mb-1 block">Plan</label>
+            <select :id="`plan-${index}`"
+                    :name="`tools[${index}][plan_key]`"
                     x-model="tool.plan_key"
                     class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500">
               <option value="">Select plan…</option>
@@ -55,20 +59,23 @@
 
           <!-- Monthly spend -->
           <div class="w-32">
-            <label class="text-xs text-gray-500 mb-1 block">$/month</label>
+            <label :for="`spend-${index}`" class="text-xs text-gray-500 mb-1 block">$/month</label>
             <div class="relative">
-              <span class="absolute left-3 top-2 text-gray-500 text-sm">$</span>
-              <input type="number" :name="`tools[${index}][monthly_spend]`"
+              <span class="absolute left-3 top-2 text-gray-500 text-sm" aria-hidden="true">$</span>
+              <input type="number" :id="`spend-${index}`"
+                     :name="`tools[${index}][monthly_spend]`"
                      x-model="tool.monthly_spend"
                      min="0" step="1" placeholder="0"
+                     :aria-label="`Monthly spend for tool ${index + 1} in USD`"
                      class="w-full bg-gray-800 border border-gray-700 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:border-orange-500">
             </div>
           </div>
 
           <!-- Seats -->
           <div class="w-24">
-            <label class="text-xs text-gray-500 mb-1 block">Seats</label>
-            <input type="number" :name="`tools[${index}][seats]`"
+            <label :for="`seats-${index}`" class="text-xs text-gray-500 mb-1 block">Seats</label>
+            <input type="number" :id="`seats-${index}`"
+                   :name="`tools[${index}][seats]`"
                    x-model="tool.seats"
                    min="1" step="1" placeholder="1"
                    class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500">
@@ -77,35 +84,37 @@
           <!-- Remove -->
           <button type="button" @click="removeTool(index)"
                   class="text-gray-600 hover:text-red-400 transition-colors pb-2"
+                  :aria-label="`Remove tool ${index + 1}`"
                   x-show="tools.length > 1">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
             </svg>
           </button>
 
         </div>
       </template>
-    </div>
+    </fieldset>
 
     <!-- Add tool -->
     <button type="button" @click="addTool()"
-            class="w-full border border-dashed border-gray-700 rounded-xl py-3 text-gray-500 hover:text-gray-300 hover:border-gray-500 transition-colors text-sm mb-8">
+            class="w-full border border-dashed border-gray-700 rounded-xl py-3 text-gray-500 hover:text-gray-300 hover:border-gray-500 transition-colors text-sm mb-8"
+            aria-label="Add another AI tool">
       + Add another tool
     </button>
 
     <!-- Team context -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
-      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Your team</h2>
-      <div class="flex flex-wrap gap-6">
+      <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4" id="team-section">Your team</h2>
+      <div class="flex flex-wrap gap-6" role="group" aria-labelledby="team-section">
         <div>
-          <label class="text-xs text-gray-500 mb-1 block">Team size</label>
-          <input type="number" name="team_size" x-model="teamSize"
+          <label for="team_size" class="text-xs text-gray-500 mb-1 block">Team size</label>
+          <input type="number" id="team_size" name="team_size" x-model="teamSize"
                  min="1" step="1" placeholder="5"
                  class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm w-28 focus:outline-none focus:border-orange-500">
         </div>
         <div>
-          <label class="text-xs text-gray-500 mb-1 block">Primary use case</label>
-          <select name="use_case" x-model="useCase"
+          <label for="use_case" class="text-xs text-gray-500 mb-1 block">Primary use case</label>
+          <select id="use_case" name="use_case" x-model="useCase"
                   class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-orange-500">
             <option value="coding">Coding / Engineering</option>
             <option value="writing">Writing / Content</option>
@@ -120,6 +129,7 @@
     <!-- Submit -->
     <button type="submit"
             :disabled="saving || !canSubmit()"
+            :aria-busy="saving"
             class="w-full bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-400 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-4 rounded-xl text-lg transition-all">
       <span x-show="!saving">Get My Free Audit →</span>
       <span x-show="saving">Running audit…</span>

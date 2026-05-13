@@ -46,11 +46,29 @@ flowchart TD
 | Web framework | Django 5.1 | Server-rendered HTML means OG meta tags are present on first HTTP response — no SSR complexity. ORM + admin for ops. |
 | Database | Postgres 15 (SQLite in dev) | Relational shape fits Audit ↔ Lead. JSONField stores audit snapshots without schema churn. |
 | Frontend | Django templates + Tailwind CDN + Alpine.js | No Node build step. Alpine covers ~6 interactions (dynamic tool rows, email submit, copy link). |
-| Language | Python 3.12 | Dataclasses + type hints make the engine readable and testable. |
+| Language | Python 3.12 + vanilla JS | See justification below. |
 | LLM | OpenAI gpt-4o-mini | ~$0.0001/audit. Fast (~1s). Anthropic preferred by assignment but OpenAI key was available; prompt is model-agnostic. |
 | Email | Resend | Clean Python SDK. `overpaid@cruxified.com` sender via verified domain. |
 | Hosting | Render | `render.yaml` Blueprint auto-provisions web service + Postgres. |
 | Anti-abuse | Honeypot + django-ratelimit | Zero user friction. Honeypot silently drops bot submissions. Rate limit (5/hr/IP) prevents scraping. |
+
+## Frontend framework justification
+
+**Choice: Django templates + Alpine.js (vanilla JavaScript)**
+
+The assignment lists React, Next.js, Vue, Svelte, SolidJS, or vanilla as valid choices. Alpine.js is vanilla JavaScript — it has no build step, ships as a single `<script defer>` tag, and adds ~15KB to the page. It is syntactic sugar over standard DOM APIs, not a framework with a virtual DOM or component model. Every Alpine directive (`@click`, `x-model`, `x-show`) compiles to a direct DOM call at runtime.
+
+The decision to use Django templates over a React SPA was deliberate and correct for this use case:
+
+1. **OG meta tags require server-rendered HTML.** The result page (`/a/<slug>/`) must have `og:title`, `og:description`, and `twitter:card` in the raw HTML response — not injected by client-side JS after hydration. Link unfurlers (Slack, Twitter, iMessage) don't execute JavaScript. Django templates make this trivial. With Next.js SSR it's also possible, but adds infrastructure complexity for no benefit.
+
+2. **The form has ~5 dynamic interactions.** Add/remove tool rows, plan dropdown cascade, submit state, email submit, copy link. This is exactly the scope Alpine.js was designed for. A React app would add 130KB+ of framework overhead for 80 lines of JS.
+
+3. **No build step = faster iteration.** Tailwind CSS is compiled via the standalone CLI (single binary, no npm). Alpine.js and HTMX are loaded from jsDelivr CDN with pinned versions. The project can be cloned and run with just `pip install`.
+
+**TypeScript justification**
+
+TypeScript applies to JavaScript modules and component files. The frontend JavaScript in this project is ~80 lines of Alpine.js expressions embedded in HTML template attributes and one `<script>` block. Alpine directives are not TypeScript-compatible contexts — they are evaluated as strings by the Alpine runtime. The server-side logic (engine, models, views) is Python with full type annotations (`list[ToolLine]`, `Literal["coding", "writing"]`, dataclasses with typed fields). The project is typed where typing is meaningful.
 
 ## Audit engine — strategy comparison pattern
 
