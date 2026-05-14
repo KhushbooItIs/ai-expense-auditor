@@ -15,11 +15,27 @@
     </p>
   </div>
 
+  {% if ref_slug %}
+  <!-- Referral banner -->
+  <div class="bg-gradient-to-r from-orange-950 to-red-950 border border-orange-800 rounded-xl p-4 mb-8 flex items-start gap-3">
+    <span class="text-xl" aria-hidden="true">🎁</span>
+    <div class="text-sm">
+      <p class="font-semibold text-orange-200 mb-1">You were referred by an OverpaidAI user</p>
+      <p class="text-orange-100 leading-relaxed">
+        Complete your audit and both of you qualify for a <span class="font-semibold">priority Credex consult</span> — skip the queue when booking your savings call.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Form -->
   <form method="POST" action="{% url 'run_audit' %}" @submit="saving = true" aria-label="AI spend audit form">
     {% csrf_token %}
     <!-- Honeypot — hidden from humans, filled by bots -->
     <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
+    {% if ref_slug %}
+    <input type="hidden" name="referrer_slug" value="{{ ref_slug }}">
+    {% endif %}
 
     <!-- Tool rows -->
     <fieldset class="space-y-3 mb-6 border-0 p-0 m-0">

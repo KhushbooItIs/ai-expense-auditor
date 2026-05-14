@@ -22,7 +22,7 @@ All tests run in ~30ms — pure Python, no database, no network, no Django test 
 
 ---
 
-## Test file 1 — `audits/tests/test_engine.py` (12 tests)
+## Test file 1 — `audits/tests/test_engine.py` (14 tests)
 
 Tests the audit engine using a minimal inline pricing fixture (no DB required).
 
@@ -58,6 +58,13 @@ Tests the audit engine using a minimal inline pricing fixture (no DB required).
 |---|---|
 | `test_api_tool_uses_user_reported_spend` | API-style tools (Anthropic API, OpenAI API) use user-reported spend, not computed from plan pricing |
 
+### Verify-billing (reported spend >> retail)
+
+| Test | What it covers |
+|---|---|
+| `test_reported_spend_far_above_retail_flagged_as_verify_billing` | $1000 reported on a $20 plan → surface a 'verify billing' finding, never mark optimal |
+| `test_reported_spend_matching_retail_is_optimal` | Reporting actual retail price → finding is optimal (no false positives) |
+
 ---
 
 ## Test file 2 — `audits/tests/test_benchmark.py` (6 tests)
@@ -75,7 +82,19 @@ Tests the per-person spend benchmark module ([audits/engine/benchmark.py](audits
 
 ---
 
-## Total: 18 tests, all engine-layer, zero I/O
+## Test file 3 — `audits/tests/test_referrals.py` (3 tests)
+
+Tests the referral attribution feature (audit-to-audit referral tracking via `Audit.referred_by_slug`).
+
+| Test | What it covers |
+|---|---|
+| `test_referrer_slug_stored_on_audit` | New audit keeps `referred_by_slug` attribution |
+| `test_referral_count_aggregates_correctly` | Counting + summing savings across referrals returns correct totals |
+| `test_audit_without_referrer_has_blank_slug` | Default empty string when no referral attribution provided |
+
+---
+
+## Total: 23 tests (14 engine + 6 benchmark + 3 referrals), zero I/O on engine/benchmark; referrals use Django test DB
 
 Run them yourself:
 
@@ -83,4 +102,4 @@ Run them yourself:
 pytest audits/tests/ -v
 ```
 
-Expected output: `18 passed in ~0.03s`.
+Expected output: `23 passed in ~0.08s`.

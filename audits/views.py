@@ -34,9 +34,16 @@ def index(request):
         ]
         vendor_plans[vendor_key] = {"name": vendor_name, "plans": plans}
 
+    # Referral attribution: only treat `?ref=` as valid if it matches an existing slug.
+    # Prevents drive-by garbage from showing the referral banner.
+    ref_slug = request.GET.get("ref", "").strip()
+    if ref_slug and not Audit.objects.filter(slug=ref_slug).exists():
+        ref_slug = ""
+
     return render(request, "audits/form.html", {
         "vendors": SUPPORTED_VENDORS,
         "vendor_plans_json": json.dumps(vendor_plans),
+        "ref_slug": ref_slug,
     })
 
 
@@ -68,10 +75,17 @@ def run_audit(request):
     input_dict = _input_to_dict(inp)
     summary = generate_summary(result_dict)
 
+    # Referral attribution — validated against an existing Audit slug to
+    # prevent attribution of fake referrers
+    referrer_slug = request.POST.get("referrer_slug", "").strip()
+    if referrer_slug and not Audit.objects.filter(slug=referrer_slug).exists():
+        referrer_slug = ""
+
     audit_obj = Audit.objects.create(
         input_json=input_dict,
         result_json=result_dict,
         summary_text=summary,
+        referred_by_slug=referrer_slug,
     )
 
     return redirect("audit_result", slug=audit_obj.slug)
@@ -83,6 +97,7 @@ def audit_result(request, slug):
         "audit": audit_obj,
         "result": audit_obj.result_json,
         "benchmark": _benchmark_for(audit_obj),
+        "referral_stats": _referral_stats_for(audit_obj),
         "is_share": False,
     })
 
@@ -94,6 +109,7 @@ def audit_share(request, slug):
         "audit": audit_obj,
         "result": audit_obj.result_json,
         "benchmark": _benchmark_for(audit_obj),
+        "referral_stats": None,  # owner-only — share view doesn't expose referral count
         "is_share": True,
     })
 
@@ -104,6 +120,18 @@ def _benchmark_for(audit_obj) -> dict:
         use_case=audit_obj.input_json.get("use_case", "mixed"),
         current_total_spend=audit_obj.result_json.get("total_current_spend", 0),
     )
+
+
+def _referral_stats_for(audit_obj) -> dict:
+    """Aggregate stats for audits that came in via this one's share link."""
+    referrals = Audit.objects.filter(referred_by_slug=audit_obj.slug)
+    count = referrals.count()
+    total_savings = sum(a.result_json.get("monthly_savings", 0) for a in referrals)
+    return {
+        "count": count,
+        "total_monthly_savings": round(total_savings, 2),
+        "total_annual_savings": round(total_savings * 12, 2),
+    }
 
 
 def healthz(request):

@@ -16,6 +16,11 @@ class Audit(models.Model):
 
     slug = models.CharField(max_length=16, unique=True, db_index=True, default=_generate_slug)
 
+    # Referral attribution — slug of the Audit whose share link sent this user in.
+    # Blank string (not NULL) keeps queries simple. Indexed for the
+    # "referrals for this audit" lookup on the owner view.
+    referred_by_slug = models.CharField(max_length=16, blank=True, default="", db_index=True)
+
     # Raw form input — stored so we can re-display the form pre-filled if needed
     input_json = models.JSONField()
 

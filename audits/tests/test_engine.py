@@ -156,3 +156,48 @@ def test_api_tool_uses_user_reported_spend():
     result = audit(inp, PRICING)
     if result.findings:
         assert result.findings[0].current_spend == 85
+
+
+# ── Verify-billing (reported spend >> retail) ─────────────────────────────────
+
+def test_reported_spend_far_above_retail_flagged_as_verify_billing():
+    """
+    User reports $1000/mo on ChatGPT Plus (retail $20) for writing.
+    ChatGPT Plus is the same-vendor-best for writing (fit=4, no cheaper alt
+    that wins on composite value), so the runner picks keep_current as 'best'.
+    Engine must NOT mark this as optimal — it must surface a 'verify billing'
+    finding (duplicate subs, miscounted seats, or data-entry error).
+    """
+    inp = _inp(
+        [ToolLine("chatgpt", "plus", monthly_spend=1000, seats=1)],
+        team_size=1,
+        use_case="writing",
+    )
+    result = audit(inp, PRICING)
+
+    assert len(result.findings) == 1
+    f = result.findings[0]
+
+    # Critical: must not be marked optimal
+    assert not f.is_optimal, "Paying $1000 for a $20 plan should never be 'optimal'"
+    # Savings should be substantial (capped at 80% of reported by honesty rail)
+    assert f.monthly_savings >= 700, f"Expected large savings, got {f.monthly_savings}"
+    # Reasoning should reference retail / billing so the user knows what to check
+    reasoning_lower = f.reasoning.lower()
+    assert any(token in reasoning_lower for token in ("retail", "billing", "duplicate", "verify"))
+    # The recommended action should mention "verify" and the retail price
+    assert "verify" in f.recommended_action.lower()
+    # Route must surface savings
+    assert result.route in ("high_savings", "normal")
+
+
+def test_reported_spend_matching_retail_is_optimal():
+    """Sanity check: paying the actual retail price = no verify-billing finding."""
+    inp = _inp(
+        [ToolLine("chatgpt", "plus", monthly_spend=20, seats=1)],
+        team_size=1,
+        use_case="writing",
+    )
+    result = audit(inp, PRICING)
+    # No meaningful savings vs retail → finding is optimal (or near-optimal alt)
+    assert result.findings[0].monthly_savings < SAVINGS_THRESHOLD or result.findings[0].is_optimal

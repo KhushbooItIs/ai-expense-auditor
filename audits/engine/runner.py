@@ -60,20 +60,53 @@ def audit(inp: AuditInput, pricing: dict) -> AuditResult:
         # Honesty rail: cap at 80% of current spend to avoid absurd claims
         savings = min(raw_savings, line.monthly_spend * MAX_SAVINGS_RATIO)
 
-        if savings >= SAVINGS_THRESHOLD and not best.is_current:
-            findings.append(Finding(
-                vendor_key=line.vendor_key,
-                vendor_name=best.vendor_name,
-                current_plan=_plan_name(pricing, line.vendor_key, line.plan_key),
-                current_seats=line.seats,
-                current_spend=line.monthly_spend,
-                recommended_action=best.label,
-                recommended_cost=best.monthly_cost,
-                monthly_savings=round(savings, 2),
-                reasoning=best.reasoning,
-                evidence=best.evidence,
-                is_optimal=False,
-            ))
+        if savings >= SAVINGS_THRESHOLD:
+            # Two distinct cases:
+            #   (a) An alternative plan beats the current one — recommend the alternative
+            #   (b) Best plan IS the current one, but the user reports paying way more
+            #       than this plan's retail price → surface a verify-billing finding
+            #       (duplicate subs, miscounted seats, or data-entry error)
+            if best.is_current:
+                findings.append(Finding(
+                    vendor_key=line.vendor_key,
+                    vendor_name=best.vendor_name,
+                    current_plan=_plan_name(pricing, line.vendor_key, line.plan_key),
+                    current_seats=line.seats,
+                    current_spend=line.monthly_spend,
+                    recommended_action=(
+                        f"Verify billing — {best.vendor_name} {best.plan_name} retails at "
+                        f"${best.monthly_cost:.0f}/mo for {line.seats} seat(s)"
+                    ),
+                    recommended_cost=best.monthly_cost,
+                    monthly_savings=round(savings, 2),
+                    reasoning=(
+                        f"You reported ${line.monthly_spend:.0f}/mo on {best.vendor_name} "
+                        f"{best.plan_name}, but its retail price for {line.seats} seat(s) is "
+                        f"${best.monthly_cost:.0f}/mo. Check for duplicate subscriptions, "
+                        f"miscounted seats, or whether the reported amount includes other tools."
+                    ),
+                    evidence={
+                        "reported_spend": line.monthly_spend,
+                        "retail_price": best.monthly_cost,
+                        "discrepancy": round(line.monthly_spend - best.monthly_cost, 2),
+                        "source_url": best.evidence.get("source_url"),
+                    },
+                    is_optimal=False,
+                ))
+            else:
+                findings.append(Finding(
+                    vendor_key=line.vendor_key,
+                    vendor_name=best.vendor_name,
+                    current_plan=_plan_name(pricing, line.vendor_key, line.plan_key),
+                    current_seats=line.seats,
+                    current_spend=line.monthly_spend,
+                    recommended_action=best.label,
+                    recommended_cost=best.monthly_cost,
+                    monthly_savings=round(savings, 2),
+                    reasoning=best.reasoning,
+                    evidence=best.evidence,
+                    is_optimal=False,
+                ))
         else:
             # Current plan is already optimal (or savings too small to surface)
             findings.append(Finding(

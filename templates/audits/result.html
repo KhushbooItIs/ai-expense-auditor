@@ -34,6 +34,19 @@
     {% endif %}
   </div>
 
+  {% if audit.referred_by_slug %}
+  <!-- Referred-by banner -->
+  <div class="bg-gradient-to-r from-orange-950 to-red-950 border border-orange-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+    <span class="text-xl" aria-hidden="true">🎁</span>
+    <div class="text-sm">
+      <p class="font-semibold text-orange-200 mb-1">You were referred by an OverpaidAI user</p>
+      <p class="text-orange-100 leading-relaxed">
+        Both of you qualify for a <span class="font-semibold">priority Credex consult</span> — flag this audit when booking and you'll skip the queue.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Benchmark: per-person spend vs typical -->
   {% if benchmark.per_person > 0 %}
   <div class="bg-gray-900 border
@@ -152,11 +165,19 @@
     <!-- Share button -->
     <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
       <h3 class="font-semibold mb-2">Share your audit</h3>
-      <p class="text-gray-400 text-sm mb-3">Public link — company name and email never shown.</p>
+      <p class="text-gray-400 text-sm mb-3">
+        Public link — company name and email never shown.
+        When friends audit via your link, you both qualify for a priority Credex consult.
+      </p>
       <button @click="copyShare()" class="w-full bg-gray-800 hover:bg-gray-700 rounded-lg py-2 text-sm transition-colors">
         <span x-show="!copied">Copy share link</span>
         <span x-show="copied" class="text-green-400">Copied ✓</span>
       </button>
+      {% if referral_stats.count > 0 %}
+      <p class="text-xs text-green-400 mt-3">
+        🎉 {{ referral_stats.count }} {% if referral_stats.count == 1 %}friend has{% else %}friends have{% endif %} audited via your link — together they found ${{ referral_stats.total_monthly_savings|floatformat:0 }}/mo.
+      </p>
+      {% endif %}
     </div>
 
     <!-- Email gate -->
@@ -194,7 +215,11 @@
 
   <!-- Run another audit -->
   <div class="text-center">
+    {% if is_share %}
+    <a href="/?ref={{ audit.slug }}" class="text-gray-500 hover:text-gray-300 text-sm underline">Run your own audit →</a>
+    {% else %}
     <a href="/" class="text-gray-500 hover:text-gray-300 text-sm underline">← Run another audit</a>
+    {% endif %}
   </div>
 
 </div>
@@ -220,7 +245,8 @@ function resultPage() {
     },
 
     async copyShare() {
-      const url = `${location.origin}/a/{{ audit.slug }}/`;
+      // Include ?ref=<slug> so audits run from this link are attributed back
+      const url = `${location.origin}/a/{{ audit.slug }}/?ref={{ audit.slug }}`;
       await navigator.clipboard.writeText(url);
       this.copied = true;
       setTimeout(() => this.copied = false, 2000);
