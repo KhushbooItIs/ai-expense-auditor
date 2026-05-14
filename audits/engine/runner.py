@@ -2,7 +2,7 @@
 Main engine entry point. Pure Python — no Django, no DB, no HTTP.
 Call audit(inp, pricing) with data from pricing.loader.get_pricing_data().
 """
-from audits.engine.input import AuditInput
+from audits.engine.input import AuditInput, ToolLine
 from audits.engine.candidate import AuditResult, Candidate, Finding
 from audits.engine.generators import GENERATORS
 
@@ -10,6 +10,20 @@ SAVINGS_THRESHOLD = 5.0    # ignore savings < $5/mo (noise)
 MAX_SAVINGS_RATIO = 0.80   # never claim savings > 80% of current spend (honesty rail)
 HIGH_SAVINGS_THRESHOLD = 500.0
 OPTIMAL_THRESHOLD = 100.0
+
+# Selection weights — picked to nudge, not override, the cost signal.
+# A vendor switch only wins if savings beat the same-vendor option by > SWITCH_VENDOR_PENALTY.
+# A higher-fit alternative wins over a marginally cheaper one when the gap is < FIT_SCORE_BONUS.
+SWITCH_VENDOR_PENALTY = 5.0   # $/mo: implicit friction of changing vendors
+FIT_SCORE_BONUS = 3.0         # $/mo: value of each fit-score point (1-5)
+
+
+def _candidate_value(c: Candidate, line: ToolLine) -> float:
+    """Composite score: higher is better. Balances savings vs capability vs friction."""
+    savings = line.monthly_spend - c.monthly_cost
+    fit_bonus = c.fit_score * FIT_SCORE_BONUS
+    switch_penalty = 0.0 if c.vendor_key == line.vendor_key else SWITCH_VENDOR_PENALTY
+    return savings + fit_bonus - switch_penalty
 
 
 def audit(inp: AuditInput, pricing: dict) -> AuditResult:
@@ -32,8 +46,10 @@ def audit(inp: AuditInput, pricing: dict) -> AuditResult:
         if not valid:
             continue
 
-        # Pick best: cheapest first, break ties by preferring higher fit score
-        best = min(valid, key=lambda c: (c.monthly_cost, -c.fit_score))
+        # Pick best by composite value: savings + fit bonus - switch penalty.
+        # This stops a marginally-cheaper vendor switch from beating a same-vendor
+        # downgrade with equal/better capability.
+        best = max(valid, key=lambda c: _candidate_value(c, line))
 
         # Track Credex eligibility on whichever plan they're staying on
         current = next((c for c in valid if c.is_current), None)

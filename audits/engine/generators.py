@@ -6,8 +6,11 @@ Add a new generator here and append it to GENERATORS to extend the engine.
 from audits.engine.input import AuditInput, ToolLine
 from audits.engine.candidate import Candidate
 
-# API-style tools where the user reports spend but there's no fixed plan to right-size
+# Vendor keys where the user reports their own spend (no fixed plan to right-size)
 _API_VENDOR_KEYS = {"anthropic_api", "openai_api"}
+
+# Plan keys that represent usage-based billing — $0 price is misleading as an alternative
+_USAGE_BASED_PLAN_KEYS = {"api"}
 
 
 def _fit_score(pricing: dict, vendor_key: str, plan_key: str, use_case: str) -> int:
@@ -72,20 +75,23 @@ def downgrade_within_vendor(line: ToolLine, inp: AuditInput, pricing: dict) -> l
     if not current_plan:
         return []
 
-    current_cost = _cost_for_seats(current_plan, line.seats)
+    # Use what the user reports paying — not the theoretical plan price
+    current_cost = line.monthly_spend
     current_score = _fit_score(pricing, line.vendor_key, line.plan_key, inp.use_case)
 
     candidates = []
     for (vk, pk), plan in pricing["plans"].items():
         if vk != line.vendor_key or pk == line.plan_key:
             continue
+        if pk in _USAGE_BASED_PLAN_KEYS:
+            continue  # usage-based pricing — $0 label would be misleading
 
         if not _seats_fit(plan, line.seats):
             continue  # plan cannot accommodate this seat count
 
         cost = _cost_for_seats(plan, line.seats)
         if cost >= current_cost:
-            continue  # not cheaper
+            continue  # not cheaper than what they're paying
 
         score = _fit_score(pricing, vk, pk, inp.use_case)
         if score == 0 or score < current_score - 1:
@@ -101,7 +107,7 @@ def downgrade_within_vendor(line: ToolLine, inp: AuditInput, pricing: dict) -> l
             fit_score=score,
             reasoning=(
                 f"{plan['vendor_name']} {plan['plan_name']} covers your {inp.use_case} "
-                f"workflow at ${cost:.0f}/mo vs ${current_cost:.0f}/mo."
+                f"workflow at ${cost:.0f}/mo vs the ${current_cost:.0f}/mo you're paying now."
             ),
             evidence={
                 "current_plan": current_plan["plan_name"],
@@ -182,7 +188,7 @@ def rightsize_seats(line: ToolLine, inp: AuditInput, pricing: dict) -> list[Cand
 def switch_to_alternative(line: ToolLine, inp: AuditInput, pricing: dict) -> list[Candidate]:
     """
     Different vendor, similar capability (fit score within 1 point of current),
-    meaningfully cheaper.
+    meaningfully cheaper (saves at least $5/mo vs what the user reports paying).
     """
     if line.vendor_key in _API_VENDOR_KEYS:
         return []
@@ -191,7 +197,8 @@ def switch_to_alternative(line: ToolLine, inp: AuditInput, pricing: dict) -> lis
     if not current_plan:
         return []
 
-    current_cost = _cost_for_seats(current_plan, line.seats)
+    # Use what the user reports paying as the baseline — not the theoretical plan price
+    current_cost = line.monthly_spend
     current_score = _fit_score(pricing, line.vendor_key, line.plan_key, inp.use_case)
 
     candidates = []
@@ -200,6 +207,8 @@ def switch_to_alternative(line: ToolLine, inp: AuditInput, pricing: dict) -> lis
             continue  # same vendor handled by downgrade generator
         if vk in _API_VENDOR_KEYS:
             continue
+        if pk in _USAGE_BASED_PLAN_KEYS:
+            continue  # usage-based pricing — $0 label would be misleading
 
         if not _seats_fit(plan, line.seats):
             continue  # plan cannot accommodate this seat count
@@ -211,8 +220,8 @@ def switch_to_alternative(line: ToolLine, inp: AuditInput, pricing: dict) -> lis
             continue  # would be a significant capability downgrade
 
         cost = _cost_for_seats(plan, line.seats)
-        if cost >= current_cost * 0.9:
-            continue  # less than 10% saving — not worth the switch friction
+        if current_cost - cost < 5.0:
+            continue  # saves less than $5/mo — not worth the switch friction
 
         candidates.append(Candidate(
             vendor_key=vk,
@@ -225,7 +234,7 @@ def switch_to_alternative(line: ToolLine, inp: AuditInput, pricing: dict) -> lis
             reasoning=(
                 f"{plan['vendor_name']} {plan['plan_name']} is a strong fit for "
                 f"{inp.use_case} work at ${cost:.0f}/mo — "
-                f"${current_cost - cost:.0f}/mo less than your current plan."
+                f"${current_cost - cost:.0f}/mo less than you're paying now."
             ),
             evidence={
                 "current_vendor": current_plan["vendor_name"],
