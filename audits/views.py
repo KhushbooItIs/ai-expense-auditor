@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 
+from audits.engine.benchmark import get_benchmark
 from audits.engine.input import AuditInput, ToolLine
 from audits.engine.runner import audit as run_engine
 from audits.models import Audit
@@ -81,6 +82,7 @@ def audit_result(request, slug):
     return render(request, "audits/result.html", {
         "audit": audit_obj,
         "result": audit_obj.result_json,
+        "benchmark": _benchmark_for(audit_obj),
         "is_share": False,
     })
 
@@ -91,8 +93,17 @@ def audit_share(request, slug):
     return render(request, "audits/result.html", {
         "audit": audit_obj,
         "result": audit_obj.result_json,
+        "benchmark": _benchmark_for(audit_obj),
         "is_share": True,
     })
+
+
+def _benchmark_for(audit_obj) -> dict:
+    return get_benchmark(
+        team_size=audit_obj.input_json.get("team_size", 1),
+        use_case=audit_obj.input_json.get("use_case", "mixed"),
+        current_total_spend=audit_obj.result_json.get("total_current_spend", 0),
+    )
 
 
 def healthz(request):

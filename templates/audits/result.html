@@ -34,6 +34,47 @@
     {% endif %}
   </div>
 
+  <!-- Benchmark: per-person spend vs typical -->
+  {% if benchmark.per_person > 0 %}
+  <div class="bg-gray-900 border
+              {% if benchmark.verdict == 'above' %}border-orange-900
+              {% elif benchmark.verdict == 'below' %}border-green-900
+              {% else %}border-gray-800{% endif %}
+              rounded-xl p-5 mb-8">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div class="flex-1 min-w-[200px]">
+        <p class="text-xs text-gray-500 uppercase tracking-widest mb-2">Benchmark</p>
+        <p class="text-gray-300 text-sm leading-relaxed">
+          Your team spends
+          <span class="font-bold
+            {% if benchmark.verdict == 'above' %}text-orange-300
+            {% elif benchmark.verdict == 'below' %}text-green-400
+            {% else %}text-white{% endif %}">${{ benchmark.per_person|floatformat:0 }}/person/mo</span>
+          on AI tools.
+          Companies with a {{ benchmark.team_size }}-person team focused on
+          <span class="text-gray-100">{{ benchmark.use_case }}</span>
+          typically spend
+          <span class="text-gray-100">${{ benchmark.low }}–${{ benchmark.high }}</span>
+          per person (median ${{ benchmark.median }}).
+        </p>
+        <p class="text-gray-600 text-xs mt-2">
+          {% if benchmark.verdict == 'above' %}
+            You're above the typical range — there's likely room to right-size.
+          {% elif benchmark.verdict == 'below' %}
+            You're below the typical range — your stack is lean.
+          {% else %}
+            You're in the typical range for this team profile.
+          {% endif %}
+        </p>
+      </div>
+      <div class="text-right shrink-0">
+        <div class="text-gray-500 text-xs mb-1">Typical median</div>
+        <div class="text-gray-300 font-bold text-2xl">${{ benchmark.median }}<span class="text-gray-600 text-sm font-normal">/person</span></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Credex CTA (high savings only) -->
   {% if result.route == "high_savings" and result.credex_eligible %}
   <div class="bg-gradient-to-r from-orange-950 to-red-950 border border-orange-800 rounded-xl p-6 mb-8">
