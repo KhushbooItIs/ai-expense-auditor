@@ -35,7 +35,7 @@
   </div>
 
   {% if audit.referred_by_slug %}
-  <!-- Referred-by banner -->
+  <!-- Referred-by banner (this audit came in via referral) -->
   <div class="bg-gradient-to-r from-orange-950 to-red-950 border border-orange-800 rounded-xl p-4 mb-6 flex items-start gap-3">
     <span class="text-xl" aria-hidden="true">🎁</span>
     <div class="text-sm">
@@ -44,6 +44,20 @@
         Both of you qualify for a <span class="font-semibold">priority Credex consult</span> — flag this audit when booking and you'll skip the queue.
       </p>
     </div>
+  </div>
+  {% endif %}
+
+  {% if is_share %}
+  <!-- Share-view referral CTA: someone is looking at a friend's audit. Drive them to run their own. -->
+  <div class="bg-gradient-to-r from-orange-950 to-red-950 border border-orange-800 rounded-xl p-6 mb-8 text-center">
+    <p class="text-orange-200 font-semibold mb-2 text-lg">Want to know if your team is overpaying?</p>
+    <p class="text-orange-100 text-sm mb-4 max-w-xl mx-auto">
+      Run your own audit in 60 seconds — free, no login. You and the friend who shared this both qualify for a <span class="font-semibold">priority Credex consult</span>.
+    </p>
+    <a href="/?ref={{ audit.slug }}"
+       class="inline-block bg-orange-500 hover:bg-orange-400 text-white font-semibold px-6 py-3 rounded-lg text-sm transition-colors">
+      Run my free audit →
+    </a>
   </div>
   {% endif %}
 
